@@ -1,0 +1,7 @@
+node_modules/
+cert/
+pve.sqlite
+config.json
+.env
+.DS_Store
+*.log
