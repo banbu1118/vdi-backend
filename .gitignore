@@ -3,3 +3,4 @@ pve.sqlite
 .env
 .DS_Store
 *.log
+config.json
