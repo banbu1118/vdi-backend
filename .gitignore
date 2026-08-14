@@ -4,3 +4,4 @@ pve.sqlite
 .DS_Store
 *.log
 config.json
+cert/
