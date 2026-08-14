@@ -82,12 +82,12 @@ export const getUserGroupCount = async () => {
   }
 };
 
-// 获取模板列表（只返回 vmid、name）
+// 获取模板列表（只返回 vmid、name、cpus、mem、disk）
 export const getTemplate = async () => {
   try {
     const result = await VM.findAll({
       where: { is_template: '1' },
-      attributes: ['vmid', 'name']  // ← 指定返回字段
+      attributes: ['vmid', 'name','cpus','mem','disk']  // ← 指定返回字段
     });
 
     return result;

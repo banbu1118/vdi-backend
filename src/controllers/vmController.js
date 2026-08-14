@@ -796,15 +796,22 @@ export const getVMLoginCommand = async (req, res) => {
     }
 
     //mac系统判断是否需要添加存储参数
-    let mac_drive = '';
-    if (client_type === 'mac_client' && user.drive_redirect === '1') {
-      mac_drive = `/drive:Downloads,$HOME/Downloads`;
+    let mac_linux_windows_drive = '';
+    if ((client_type === 'mac_client' || client_type === 'linux_client') && user.drive_redirect === '1') {
+      mac_linux_windows_drive = `/drive:HOME,$HOME`;
+    }else if(client_type === 'win_client'){
+      mac_linux_windows_drive = `/drives`;
     }
 
     //根据usb_redirect判断是否需要添加usb重定向参数
     let usb_redirect = '';
     if (user.usb_redirect === '1') {
-      usb_redirect = `/usb:auto`;
+      if(client_type === 'mac_client'){
+      usb_redirect = `/usb:device:*`;}
+      if(client_type === 'linux_client'){
+        usb_redirect = `/usb:device:*`;}
+      if(client_type === 'win_client'){
+        usb_redirect = `/usb:device:*`;}
     }
 
     //从环境变量中加载RDP_CODER
@@ -814,14 +821,16 @@ export const getVMLoginCommand = async (req, res) => {
     let command = '';
     switch (client_type.toLowerCase()) {
       case 'win_client':
-        command = `wfreerdp.exe ./template.rdp /f /sound:latency:200 -window-drag /${RDP_CODER} ${usb_redirect} ${clipboard_redirect} /cert:ignore`;
+        command = `qf-client.exe ./template.rdp  /sound:latency:200 -window-drag /${RDP_CODER} ${usb_redirect} ${clipboard_redirect} ${mac_linux_windows_drive} /cert:ignore /microphone`;
         break;
       case 'linux_client':
-        command = `sdl3-freerdp ./template.rdp /cert:ignore /dynamic-resolution /scale:180 /scale-desktop:180 /sound:latency:200 /gfx`;
+        command = `qf-client ./template.rdp  ${mac_linux_windows_drive} ${usb_redirect} ${clipboard_redirect} /f`;
+        // console.log("linux命令:",command);
         break;
       case 'mac_client':
         // command = `sdl-freerdp ./template.rdp /cert:ignore /dynamic-resolution /scale-desktop:140 /scale:140 /sound:latency:200  /workarea /gfx /f`;
-        command = `sdl3-freerdp ./template.rdp /cert:ignore /dynamic-resolution /scale:180 /scale-desktop:180 /sound:latency:200 /${RDP_CODER} ${mac_drive} -window-drag`;
+        command = `sdl3-freerdp ./template.rdp /cert:ignore /dynamic-resolution /scale:180 /scale-desktop:180 /sound:latency:200 /${RDP_CODER} ${mac_linux_windows_drive} ${usb_redirect} ${clipboard_redirect} -window-drag`;
+        // console.log("mac命令:",command);
         break;
       case 'web_client':
         command = `open -a Microsoft\\ Remote\\ Desktop ./Template.rdp`;

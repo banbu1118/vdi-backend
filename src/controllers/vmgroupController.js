@@ -301,9 +301,9 @@ export const updateVMGroup = async (req, res) => {
  */
 export const getAllVMGroups = async (req, res) => {
   try {
-    // 查询所有记录，只选取 vm_group 和 description 两个字段
+    // 查询所有记录，只选取 vm_group、is_snapshot、vm_count、template_name、cpus、memory_mb、description 六个字段
     const vmGroups = await VMGroup.findAll({
-      attributes: ['vm_group', 'is_snapshot', 'description']
+      attributes: ['vm_group', 'is_snapshot', 'vm_count','template_name','cpus','memory_mb','description']
     });
 
     return res.json({

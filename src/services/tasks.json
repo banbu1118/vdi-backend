@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "1786369748399",
+    "type": "rebuildVMGroup",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10",
+      "template_vmid": "515",
+      "count": "1"
+    },
+    "message": "重建虚拟机组完成！成功 1/1 台",
+    "createTime": "2026-08-10T13:49:08.399Z",
+    "updateTime": "2026-08-10T13:50:29.940Z"
+  },
+  {
+    "id": "1786412627922",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win7",
+      "template_vmid": "154",
+      "count": 2,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 2/2 台",
+    "createTime": "2026-08-11T01:43:47.922Z",
+    "updateTime": "2026-08-11T01:45:09.730Z"
+  }
+]
