@@ -799,7 +799,7 @@ export const getVMLoginCommand = async (req, res) => {
     let mac_linux_windows_drive = '';
     if ((client_type === 'mac_client' || client_type === 'linux_client') && user.drive_redirect === '1') {
       mac_linux_windows_drive = `/drive:HOME,$HOME`;
-    }else if(client_type === 'win_client'){
+    }else if(client_type === 'win_client' && user.drive_redirect === '1'){
       mac_linux_windows_drive = `/drives`;
     }
 
