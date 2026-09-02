@@ -131,7 +131,8 @@ import { guacamoleJwt } from './utils/guacamoleJwt.js';
 
   const PORT = getConfig('PORT') || 443;
 
-  const httpsServer = createHttpsServer({ key, cert }, app);
+  // requestTimeout 默认 5 分钟：大文件在低带宽（如 100Mbps）下上传可能超时被强制中断，这里放宽到 2 小时
+  const httpsServer = createHttpsServer({ key, cert, requestTimeout: 7200000 }, app);
 
   httpsServer.listen(PORT, async () => {
     try {

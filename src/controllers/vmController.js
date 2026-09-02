@@ -1,4 +1,5 @@
 import { pveRequest } from '../config/pveClient.js';
+import { Op } from 'sequelize';
 import { User } from '../models/User.js';
 import { VM } from '../models/VM.js';
 import { autosyncVMs } from '../utils/syncVMs.js';
@@ -8,6 +9,7 @@ import { freeVmid } from '../utils/freeVmid.js';
 import { createTask, updateTask } from "../services/taskPoller.js";
 import { generateSecurePassword } from '../utils/vmpassword.js';
 import { getConfig } from '../utils/getConfig.js';
+import { Client } from 'ssh2';
 
 let cachedNode = null;
 const getNode = async () => {
@@ -36,6 +38,25 @@ export const getVMList = async (_req, res) => {
     res.json({ code: 0, message: `获取虚拟机列表成功`, data: result });
   } catch (error) {
     res.status(500).json({ code: 500, message: `获取虚拟机列表失败`, error: err.message });
+  }
+};
+
+
+// 获取用户为 admin 的虚拟机列表（返回 vmid 和虚拟机名称）
+export const getAdminVMList = async (_req, res) => {
+  try {
+    const result = await VM.findAll({
+      where: {
+        user_name: 'admin',
+        is_template: { [Op.ne]: '1' }
+      },
+      attributes: ['vmid', 'name'],
+      raw: true
+    });
+
+    res.json({ code: 0, message: '获取 admin 虚拟机列表成功', data: result });
+  } catch (error) {
+    res.status(500).json({ code: 500, message: '获取 admin 虚拟机列表失败', error: error.message });
   }
 };
 
@@ -939,13 +960,64 @@ export const updateVMPassword = async (req, res) => {
   }
 };
 
-// 克隆模板虚拟机（后台执行）
-export const doCloneVM = async (vmid, name, storage, taskId) => {
+// 克隆模板虚拟机（完整克隆为虚拟机，支持任务轮询）
+export const cloneTemplateVM = async (req, res) => {
+  const { vmid } = req.params;
+  const {
+    name,
+    storage,
+    username = 'administrator',
+    password = '123456',
+    rdpPort = 3389
+  } = req.body;
+
   try {
+    if (!vmid || isNaN(vmid)) {
+      return res.status(400).json({ code: 400, message: '无效的 vmid 参数' });
+    }
+    if (!name || !storage) {
+      return res.status(400).json({ code: 400, message: '缺少 name 或 storage 参数' });
+    }
+
+    const rdpPortNum = parseInt(rdpPort, 10);
+    if (isNaN(rdpPortNum)) {
+      return res.status(400).json({ code: 400, message: '无效的 rdpPort 参数' });
+    }
+
+    // 校验模板存在
+    const vm = await VM.findOne({
+      where: { vmid, is_template: '1' },
+      attributes: ['vmid'],
+      raw: true
+    });
+    if (!vm) {
+      return res.status(404).json({ code: 404, message: `模板 ${vmid} 不存在` });
+    }
+
+    // 获取可用 VMID
     const newidRes = await freeVmid();
     const newid = newidRes.data;
     if (!newid) throw new Error('未能获取可用 VMID');
 
+    // 创建任务
+    const task = await createTask('cloneVM', { vmid, name, storage, username, password, rdpPort: rdpPortNum });
+
+    // 同步等待克隆任务结束（克隆、写库、开机完成后才返回）
+    const result = await doCloneVM(newid, vmid, name, storage, username, password, rdpPortNum, task.id);
+
+    if (result.success) {
+      return res.json({ code: 0, message: result.message, taskId: task.id });
+    }
+    return res.status(500).json({ code: 500, message: result.message, taskId: task.id });
+
+  } catch (err) {
+    return res.status(500).json({ code: 500, message: '克隆模板失败', error: err.message });
+  }
+};
+
+// 克隆模板虚拟机（同步执行，返回执行结果）
+const doCloneVM = async (newid, vmid, name, storage, username, password, rdpPort, taskId) => {
+  try {
     await updateTask(taskId, 'running', '正在提交克隆任务...');
 
     const node = await fetchNode();
@@ -962,53 +1034,52 @@ export const doCloneVM = async (vmid, name, storage, taskId) => {
 
     await updateTask(taskId, 'running', `克隆任务已提交，UPID: ${upid}`);
 
-    // 🔹 后台轮询，不阻塞
+    // 🔹 轮询等待 PVE 任务完成
     const taskResult = await waitForTask(upid, 7200000, 5000); // 最长等待 2 小时，每隔 5 秒查询一次
-    if (taskResult.exitstatus === 'OK') {
-      await updateTask(taskId, 'success', `克隆成功！新 VMID = ${newid}`);
-    } else {
-      await updateTask(taskId, 'error', `克隆失败：${taskResult.exitstatus}`);
+    if (taskResult.exitstatus !== 'OK') {
+      const message = `克隆失败：${taskResult.exitstatus}`;
+      await updateTask(taskId, 'error', message);
+      return { success: false, message };
     }
+
+    // 克隆成功，写入数据库
+    await updateTask(taskId, 'running', '克隆成功！正在更新虚拟机信息...');
+    // 先同步 PVE 虚拟机列表到数据库，确保新 VM 的 vmid 记录已存在，避免 upsert 写入失败
+    await autosyncVMs(true);
+    await upsertVMRecord(newid, name, username, password, rdpPort, node);
+
+    // 开机
+    await updateTask(taskId, 'running', '正在启动虚拟机...');
+    await pveRequest('post', `/nodes/${node}/qemu/${newid}/status/start`);
+
+    const message = `克隆成功！新 VMID = ${newid}`;
+    await updateTask(taskId, 'success', message);
+    return { success: true, message };
 
   } catch (err) {
     await updateTask(taskId, 'error', `克隆过程中异常：${err.message}`);
+    return { success: false, message: `克隆过程中异常：${err.message}` };
   }
 };
 
+// 克隆成功后写入 VM 表（存在则更新，不存在则创建）
+const upsertVMRecord = async (newid, name, username, password, rdpPort, node) => {
+  const vmidStr = newid.toString();
+  const data = {
+    name,
+    is_template: '0',
+    user_name: 'admin',
+    node,
+    vm_user: username,
+    vm_password: password,
+    rdp_port: rdpPort
+  };
 
-// 克隆模板虚拟机（支持任务轮询）
-export const cloneTemplateVM = async (req, res) => {
-  const { vmid } = req.params;
-  const { name, storage } = req.body;
-
-  try {
-    if (!vmid || isNaN(vmid)) {
-      return res.status(400).json({ code: 400, message: '无效的 vmid 参数' });
-    }
-    if (!name || !storage) {
-      return res.status(400).json({ code: 400, message: '缺少 name 或 storage 参数' });
-    }
-
-    const vm = await VM.findOne({
-      where: { vmid, is_template: '1' },
-      attributes: ['vmid'],
-      raw: true
-    });
-    if (!vm) {
-      return res.status(404).json({ code: 404, message: `模板 ${vmid} 不存在` });
-    }
-
-    // 创建任务
-    const task = await createTask('cloneVM', { vmid, name, storage });
-
-    // 立即返回任务 ID
-    res.json({ code: 0, message: '克隆任务已提交', taskId: task.id });
-
-    // 后台执行
-    doCloneVM(vmid, name, storage, task.id);
-
-  } catch (err) {
-    return res.status(500).json({ code: 500, message: '克隆模板失败', error: err.message });
+  const existingVM = await VM.findOne({ where: { vmid: vmidStr } });
+  if (existingVM) {
+    await existingVM.update(data);
+  } else {
+    await VM.create({ vmid: vmidStr, ...data });
   }
 };
 
@@ -1038,8 +1109,33 @@ export const convertToTemplate = async (req, res) => {
       return res.status(400).json({ code: 400, message: `虚拟机 ${vmid} 已经是模板，无需重复转换` });
     }
 
+    // 3️⃣ 确保虚拟机已关闭（未关闭则先关机，等待关机成功后再转为模板）
+    const node = await getNode();
+    const statusRes = await pveRequest("get", `/nodes/${node}/qemu/${vmid}/status/current`);
+    const currentStatus = statusRes?.data?.status;
+
+    if (currentStatus && currentStatus !== "stopped") {
+      // 3.1 优雅关机
+      const shutdownRes = await pveRequest("post", `/nodes/${node}/qemu/${vmid}/status/shutdown`);
+      const shutdownUpid = shutdownRes?.data;
+      if (!shutdownUpid || !shutdownUpid.startsWith("UPID")) {
+        return res.status(500).json({ code: 500, message: `虚拟机 ${vmid} 关机失败（未返回有效 UPID）` });
+      }
+
+      // 3.2 等待关机完成（最长 2 分钟）
+      let shutdownResult;
+      try {
+        shutdownResult = await waitForTask(shutdownUpid, 120000, 2000);
+      } catch (shutdownErr) {
+        return res.status(500).json({ code: 500, message: `虚拟机 ${vmid} 关机超时，请手动关闭后重试` });
+      }
+      if (shutdownResult.exitstatus !== "OK") {
+        return res.status(500).json({ code: 500, message: `虚拟机 ${vmid} 关机失败：${shutdownResult.exitstatus}，请手动关闭后重试` });
+      }
+    }
+
     // 4️⃣ 调用 PVE 接口转为模板
-    const templateRes = await pveRequest("post", `/nodes/${await getNode()}/qemu/${vmid}/template`);
+    const templateRes = await pveRequest("post", `/nodes/${node}/qemu/${vmid}/template`);
 
     // 5️⃣ 获取任务 UPID
     const upid = templateRes?.data;
@@ -1184,3 +1280,358 @@ export const updateRDPPort = async (req, res) => {
     })
   }
 }
+
+/**
+ * PVE 的 SSH/SFTP 连接配置（与 PVE API 端口不同，SSH 默认 22）
+ */
+const getPveSshConfig = () => ({
+  host: getConfig('PVE_HOST'),
+  port: 22,
+  username: getConfig('PVE_USER'),
+  password: getConfig('PVE_PASSWORD')
+});
+
+/**
+ * 通过 SSH/SFTP 将请求流直接写入 PVE 远端文件
+ * - 流式传输，不落盘、无哈希校验
+ * - 通过字节计数与前端声明的 fileSize 对账，防止上传中断产生残缺文件
+ */
+const uploadFileViaSFTP = (fileStream, remotePath, expectedSize, pveConfig) => {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    let uploadedBytes = 0;
+
+    conn.on('ready', () => {
+      conn.sftp((err, sftp) => {
+        if (err) {
+          conn.end();
+          return reject(err);
+        }
+
+        const writeStream = sftp.createWriteStream(remotePath);
+
+        writeStream.on('close', () => {
+          conn.end();
+          if (expectedSize && uploadedBytes !== expectedSize) {
+            return reject(
+              new Error(`上传字节数与声明不一致: 期望 ${expectedSize}, 实际 ${uploadedBytes}`)
+            );
+          }
+          resolve({ uploadedBytes });
+        });
+
+        writeStream.on('error', (e) => {
+          conn.end();
+          reject(e);
+        });
+
+        fileStream.on('error', (e) => {
+          writeStream.destroy();
+          conn.end();
+          reject(e);
+        });
+
+        fileStream.on('data', (chunk) => {
+          uploadedBytes += chunk.length;
+        });
+
+        fileStream.pipe(writeStream);
+      });
+    });
+
+    conn.on('error', reject);
+
+    conn.connect({
+      host: pveConfig.host,
+      port: pveConfig.port || 22,
+      username: pveConfig.username,
+      password: pveConfig.password,
+      readyTimeout: 20000
+    });
+  });
+};
+
+/**
+ * 删除 PVE 远端文件（上传失败时清理残缺文件）
+ */
+const deleteRemoteFile = (remotePath, pveConfig) => {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+
+    conn.on('ready', () => {
+      conn.sftp((err, sftp) => {
+        if (err) {
+          conn.end();
+          return reject(err);
+        }
+        sftp.unlink(remotePath, (unlinkErr) => {
+          conn.end();
+          if (unlinkErr) return reject(unlinkErr);
+          resolve();
+        });
+      });
+    });
+
+    conn.on('error', reject);
+
+    conn.connect({
+      host: pveConfig.host,
+      port: pveConfig.port || 22,
+      username: pveConfig.username,
+      password: pveConfig.password,
+      readyTimeout: 20000
+    });
+  });
+};
+
+/**
+ * 导入模板
+ * - 前端以 raw body（application/octet-stream）上传备份文件，参数放 query：filename / filesize / storage
+ * - 流式上传到 PVE 的 /var/lib/vz/dump（local 存储的 dump 目录，不落盘）
+ * - 恢复备份为虚拟机 → 轮询任务 → 转为模板 → 同步数据库
+ */
+export const importTemplate = async (req, res) => {
+  const { filename, filesize, storage } = req.query;
+
+  try {
+    // 1️⃣ 参数校验
+    if (!filename || !filesize || !storage) {
+      return res.status(400).json({ code: 400, message: 'filename、filesize、storage 为必填参数' });
+    }
+    // 文件名安全校验（防路径穿越），只允许 PVE 备份文件名常用的字符
+    if (!/^[A-Za-z0-9._-]+$/.test(filename)) {
+      return res.status(400).json({ code: 400, message: '非法的文件名' });
+    }
+    const size = parseInt(filesize, 10);
+    if (isNaN(size) || size <= 0) {
+      return res.status(400).json({ code: 400, message: 'filesize 必须是正整数' });
+    }
+
+    const node = await getNode();
+
+    // 2️⃣ 检查 local 存储剩余空间是否够用
+    const storageStatus = await pveRequest('get', `/nodes/${node}/storage/local/status`);
+    const avail = storageStatus?.data?.avail ?? storageStatus?.data?.data?.avail;
+    if (!avail || avail < size) {
+      const availMB = Math.floor((avail || 0) / 1024 / 1024);
+      const sizeMB = Math.floor(size / 1024 / 1024);
+      return res.status(400).json({
+        code: 400,
+        message: `local 存储剩余空间不足（剩余 ${availMB}MB，需要 ${sizeMB}MB）`
+      });
+    }
+
+    const pveConfig = getPveSshConfig();
+
+    // 3️⃣ 流式上传到 /var/lib/vz/dump
+    const remotePath = `/var/lib/vz/dump/${filename}`;
+    try {
+      await uploadFileViaSFTP(req, remotePath, size, pveConfig);
+    } catch (uploadErr) {
+      // 上传失败时清理残缺文件
+      await deleteRemoteFile(remotePath, pveConfig).catch(() => {});
+      return res.status(500).json({ code: 500, message: '上传文件到 PVE 失败', error: uploadErr.message });
+    }
+
+    // 4️⃣ 获取空闲 VMID 并恢复备份
+    const vmidRes = await freeVmid();
+    const vmid = vmidRes?.data?.data ?? vmidRes?.data;
+    if (!vmid) {
+      return res.status(500).json({ code: 500, message: '获取空闲 VMID 失败' });
+    }
+
+    const restoreRes = await pveRequest('post', `/nodes/${node}/qemu`, {
+      vmid,
+      storage,
+      archive: `local:backup/${filename}`
+    });
+
+    const upid = restoreRes?.data?.data ?? restoreRes?.data;
+    if (!upid || !String(upid).startsWith('UPID')) {
+      // pveRequest 失败时返回 { error, status, details }，透出真实原因便于排查
+      const reason = restoreRes?.details || restoreRes?.error || '未返回有效 UPID';
+      return res.status(500).json({ code: 500, message: `恢复备份任务提交失败：${reason}` });
+    }
+
+    // 5️⃣ 轮询恢复任务（恢复过程可能较长）
+    const taskResult = await waitForTask(upid);
+    if (taskResult.exitstatus !== 'OK') {
+      return res.status(500).json({ code: 500, message: `恢复备份失败：${taskResult.exitstatus}` });
+    }
+
+    // 6️⃣ 判断是否为模板，不是则转为模板
+    // 注意：PVE config API 返回的 template 字段可能是数字 1 或字符串 '1'，需兼容两种
+    const configRes = await pveRequest('get', `/nodes/${node}/qemu/${vmid}/config`);
+    const config = configRes?.data?.data ?? configRes?.data;
+    const isTemplate = config?.template === '1' || config?.template === 1;
+    if (!isTemplate) {
+      const templateRes = await pveRequest('post', `/nodes/${node}/qemu/${vmid}/template`);
+      const tupid = templateRes?.data?.data ?? templateRes?.data;
+      if (!tupid || !String(tupid).startsWith('UPID')) {
+        // pveRequest 失败时返回 { error, status, details }，透出真实原因便于排查
+        const reason = templateRes?.details || templateRes?.error || '未返回有效 UPID';
+        return res.status(500).json({ code: 500, message: `转换为模板任务提交失败：${reason}` });
+      }
+      const tTask = await waitForTask(tupid, 60000, 1000);
+      if (tTask.exitstatus !== 'OK') {
+        return res.status(500).json({ code: 500, message: `转换为模板失败：${tTask.exitstatus}` });
+      }
+    }
+
+    // 7️⃣ 同步数据库，让新模板进入平台列表
+    await autosyncVMs(true);
+
+    res.json({
+      code: 0,
+      message: `filename:${filename} 模板导入完成，`,
+    });
+  } catch (err) {
+    console.error('[VM] 导入模板失败:', err);
+    res.status(500).json({ code: 500, message: '导入模板失败', error: err.message });
+  }
+};
+
+/**
+ * 通过 SSH/SFTP 将 PVE 远端文件流式传输给 HTTP 响应
+ * - 不落盘：sftp.createReadStream → res
+ * - 客户端中断下载时清理 ssh2 连接，避免泄漏
+ */
+const streamFileViaSFTP = (res, remotePath, pveConfig) => {
+  return new Promise((resolve, reject) => {
+    const conn = new Client();
+    let cleaned = false;
+    let finished = false;
+
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      conn.end();
+    };
+
+    conn.on('ready', () => {
+      conn.sftp((err, sftp) => {
+        if (err) {
+          cleanup();
+          return reject(err);
+        }
+
+        // 先 stat 拿到文件大小，设置 Content-Length 供前端展示下载进度
+        sftp.stat(remotePath, (statErr, attrs) => {
+          if (statErr) {
+            cleanup();
+            return reject(statErr);
+          }
+
+          res.setHeader('Content-Type', 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${remotePath.split('/').pop()}"`);
+          res.setHeader('Content-Length', attrs.size);
+
+          // 实测：SFTP 每读一块需一次请求/响应往返，吞吐仅 ~23MB/s（调大块大小收效甚微）；
+          // 改用 exec 裸通道 cat 流式输出，实测可跑满链路（~1.1GB/s）
+          conn.exec(`cat ${JSON.stringify(remotePath)}`, (execErr, stream) => {
+            if (execErr) {
+              cleanup();
+              return reject(execErr);
+            }
+
+            stream.on('exit', (code) => {
+              if (code !== 0) {
+                stream.destroy();
+                cleanup();
+                reject(new Error(`远端读取失败（exit ${code}）`));
+              }
+            });
+
+            stream.on('error', (e) => {
+              cleanup();
+              res.destroy(e);
+              reject(e);
+            });
+
+            res.on('finish', () => {
+              finished = true;
+              cleanup();
+              resolve({ size: attrs.size });
+            });
+
+            // 客户端中断下载（如取消/断网）时清理 ssh2 连接
+            res.on('close', () => {
+              stream.destroy();
+              cleanup();
+              if (!finished) reject(new Error('下载被客户端中断'));
+            });
+
+            stream.pipe(res);
+          });
+        });
+      });
+    });
+
+    conn.on('error', reject);
+
+    conn.connect({ ...pveConfig, readyTimeout: 20000 });
+  });
+};
+
+/**
+ * 导出模板
+ * - PVE 创建备份任务（local 存储、快照模式、zstd 压缩）→ waitForTask 轮询
+ * - 从任务日志提取备份文件路径 → ssh2 流式下载给前端（响应体即文件）
+ * - 备份文件保留在 PVE 上，不删除
+ */
+export const exportTemplate = async (req, res) => {
+  const { vmid } = req.params;
+
+  try {
+    // 1️⃣ 参数校验
+    if (!vmid || isNaN(vmid)) {
+      return res.status(400).json({ code: 400, message: '无效的 vmid 参数' });
+    }
+
+    const node = await getNode();
+
+    // 2️⃣ 触发备份任务
+    const backupRes = await pveRequest('post', `/nodes/${node}/vzdump`, {
+      vmid,
+      storage: 'local',
+      mode: 'snapshot',
+      compress: 'zstd'
+    });
+    const upid = backupRes?.data?.data ?? backupRes?.data;
+    if (!upid || !String(upid).startsWith('UPID')) {
+      // pveRequest 失败时返回 { error, status, details }，透出真实原因便于排查
+      const reason = backupRes?.details || backupRes?.error || '未返回有效 UPID';
+      return res.status(500).json({ code: 500, message: `备份任务提交失败：${reason}` });
+    }
+
+    // 3️⃣ 轮询备份任务
+    const taskResult = await waitForTask(upid);
+    if (taskResult.exitstatus !== 'OK') {
+      return res.status(500).json({ code: 500, message: `备份失败：${taskResult.exitstatus}` });
+    }
+
+    // 4️⃣ 从任务日志提取备份文件路径
+    // 注意：PVE 9 日志条目的文本在 t 字段（旧版在 msg 字段），需兼容两种
+    const logRes = await pveRequest('get', `/nodes/${node}/tasks/${encodeURIComponent(upid)}/log`);
+    const logLines = logRes?.data?.data ?? logRes?.data;
+    const archiveLine = (Array.isArray(logLines) ? logLines : [])
+      .map(line => typeof line?.t === 'string' ? line.t : line.msg)
+      .find(msg => /creating vzdump archive '([^']+)'/.test(msg || ''));
+    const match = archiveLine && archiveLine.match(/creating vzdump archive '([^']+)'/);
+    const remotePath = match && match[1];
+    if (!remotePath) {
+      return res.status(500).json({ code: 500, message: '无法从备份日志中获取备份文件路径' });
+    }
+
+    // 5️⃣ 流式下载（响应体即备份文件）
+    await streamFileViaSFTP(res, remotePath, getPveSshConfig());
+  } catch (err) {
+    console.error('[VM] 导出模板失败:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ code: 500, message: '导出模板失败', error: err.message });
+    } else {
+      // 响应头已发出（正在下载），只能中断连接
+      res.destroy(err);
+    }
+  }
+};

@@ -1,12 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { encryptSecret } from './crypto.js';
 
 // ES模块中获取当前文件路径的方法
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const configPath = path.resolve(__dirname, '../../config.json');
+
+// 需要加密落盘的敏感字段
+const SENSITIVE_KEYS = ['PVE_PASSWORD', 'JWT_SECRET', 'OIDC_ADMIN_PASSWORD', 'OIDC_CLIENT_SECRET', 'guacamole_SECRET'];
 
 /**
  * 更新配置（每次只更新一个字段）
@@ -35,11 +39,17 @@ export const setConfig = (key, value) => {
       obj = obj[k];
     }
 
-    // 4️⃣ 设置值
-    obj[keys[keys.length - 1]] = value;
+    // 4️⃣ 设置值（敏感字段加密后落盘）
+    const finalKey = keys.join('.');
+    obj[keys[keys.length - 1]] = SENSITIVE_KEYS.includes(finalKey) ? encryptSecret(value) : value;
 
-    // 5️⃣ 写回文件（格式化，方便你看）
+    // 5️⃣ 写回文件（格式化，方便你看），并收紧权限
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    try {
+      fs.chmodSync(configPath, 0o600);
+    } catch (e) {
+      // 权限收紧失败不阻塞写入
+    }
 
     return true;
   } catch (err) {

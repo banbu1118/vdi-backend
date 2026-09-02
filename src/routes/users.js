@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, deleteUser, changePassword, assignVMToUser, unassignVMFromUser, getUserVMs, getAllUsers, batchCreateUsers,updateUser,disableUser,unlockUser } from '../controllers/userController.js';
+import { createUser, deleteUser, changePassword, assignVMToUser, unassignVMFromUser, getUserVMs, getAllUsers, batchCreateUsers, createSingleUser, updateUser,disableUser,unlockUser } from '../controllers/userController.js';
 import { auth, authorize } from '../middleware/auth.js';
 import { handleHeartbeat } from '../utils/heartbeat.js';
 
@@ -12,6 +12,9 @@ router.post('/', authorize(['admin']), createUser);
 
 // 批量创建用户：仅 admin 可操作
 router.post('/batch', authorize(['admin']), batchCreateUsers);
+
+// 创建单个用户：仅 admin 可操作
+router.post('/single', authorize(['admin']), createSingleUser);
 
 // 更新用户信息：仅 admin 可操作
 router.post('/updateUser', authorize(['admin']), updateUser);

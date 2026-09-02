@@ -17,7 +17,7 @@ import {isPublicLogin} from '../utils/isPublicLogin.js';
  */
 export const login = async (req, res) => {
   try {
-    const { username, password, client_type, login_server } = req.body;
+    const { username, password, client_type } = req.body;
     const login_ip = getClientIp(req);
 
 

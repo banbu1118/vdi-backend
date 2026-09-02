@@ -5,3 +5,5 @@ pve.sqlite
 *.log
 config.json
 cert/
+.keys/
+dist/

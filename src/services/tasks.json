@@ -25,5 +25,512 @@
     "message": "批量克隆完成！成功 2/2 台",
     "createTime": "2026-08-11T01:43:47.922Z",
     "updateTime": "2026-08-11T01:45:09.730Z"
+  },
+  {
+    "id": "1786833326522",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win11虚拟机组",
+      "template_vmid": "105",
+      "count": 2,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 2/2 台",
+    "createTime": "2026-08-15T22:35:26.522Z",
+    "updateTime": "2026-08-15T22:36:19.996Z"
+  },
+  {
+    "id": "1786834346766",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10虚拟机组",
+      "template_vmid": "122",
+      "count": 2,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 2/2 台",
+    "createTime": "2026-08-15T22:52:26.766Z",
+    "updateTime": "2026-08-15T22:53:51.196Z"
+  },
+  {
+    "id": "1786845494185",
+    "type": "rebuildVMGroup",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10虚拟机组",
+      "template_vmid": "122",
+      "count": "2"
+    },
+    "message": "重建虚拟机组完成！成功 2/2 台",
+    "createTime": "2026-08-16T01:58:14.185Z",
+    "updateTime": "2026-08-16T01:59:45.714Z"
+  },
+  {
+    "id": "1788052192310",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win11虚拟机组",
+      "template_vmid": "145",
+      "count": 1,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 1/1 台",
+    "createTime": "2026-08-30T01:09:52.310Z",
+    "updateTime": "2026-08-30T01:11:10.499Z"
+  },
+  {
+    "id": "1788083833606",
+    "type": "batchCloneVM",
+    "status": "partial",
+    "payload": {
+      "vm_group": "win11虚拟机组",
+      "template_vmid": "145",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 3/4 台，失败: win11-04",
+    "createTime": "2026-08-30T09:57:13.606Z",
+    "updateTime": "2026-08-30T10:08:13.712Z"
+  },
+  {
+    "id": "1788084043064",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10group",
+      "template_vmid": "142",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 4/4 台",
+    "createTime": "2026-08-30T10:00:43.064Z",
+    "updateTime": "2026-08-30T10:02:12.868Z"
+  },
+  {
+    "id": "1788084206952",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10group",
+      "template_vmid": "142",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 4/4 台",
+    "createTime": "2026-08-30T10:03:26.952Z",
+    "updateTime": "2026-08-30T10:04:51.789Z"
+  },
+  {
+    "id": "1788084779506",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10group",
+      "template_vmid": "142",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 4/4 台",
+    "createTime": "2026-08-30T10:12:59.506Z",
+    "updateTime": "2026-08-30T10:14:13.216Z"
+  },
+  {
+    "id": "1788282621418",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-test",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 105",
+    "createTime": "2026-09-01T17:10:21.418Z",
+    "updateTime": "2026-09-01T17:10:36.508Z"
+  },
+  {
+    "id": "1788282827730",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-test-2",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-01T17:13:47.730Z",
+    "updateTime": "2026-09-01T17:13:52.810Z"
+  },
+  {
+    "id": "1788282853332",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "111",
+      "name": "clone-test-3",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 130",
+    "createTime": "2026-09-01T17:14:13.332Z",
+    "updateTime": "2026-09-01T17:16:41.232Z"
+  },
+  {
+    "id": "1788283288389",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-test",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 105",
+    "createTime": "2026-09-01T17:21:28.389Z",
+    "updateTime": "2026-09-01T17:21:33.471Z"
+  },
+  {
+    "id": "1788283329222",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-test-2",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-01T17:22:09.222Z",
+    "updateTime": "2026-09-01T17:22:14.286Z"
+  },
+  {
+    "id": "1788285157231",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-4",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T17:52:37.231Z",
+    "updateTime": "2026-09-01T17:52:42.277Z"
+  },
+  {
+    "id": "1788285285568",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-4f",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T17:54:45.568Z",
+    "updateTime": "2026-09-01T17:54:50.611Z"
+  },
+  {
+    "id": "1788285371376",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-4ff",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 130",
+    "createTime": "2026-09-01T17:56:11.376Z",
+    "updateTime": "2026-09-01T17:56:16.461Z"
+  },
+  {
+    "id": "1788285513131",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-1",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 148",
+    "createTime": "2026-09-01T17:58:33.131Z",
+    "updateTime": "2026-09-01T17:58:39.204Z"
+  },
+  {
+    "id": "1788285529167",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-2",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T17:58:49.167Z",
+    "updateTime": "2026-09-01T17:58:54.297Z"
+  },
+  {
+    "id": "1788285549097",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-3",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T17:59:09.097Z",
+    "updateTime": "2026-09-01T17:59:14.133Z"
+  },
+  {
+    "id": "1788285556415",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-3",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T17:59:16.415Z",
+    "updateTime": "2026-09-01T17:59:21.450Z"
+  },
+  {
+    "id": "1788285636553",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-3",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T18:00:36.553Z",
+    "updateTime": "2026-09-01T18:00:41.597Z"
+  },
+  {
+    "id": "1788286046826",
+    "type": "cloneVM",
+    "status": "error",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-4",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆过程中异常：notNull Violation: VM.mem cannot be null",
+    "createTime": "2026-09-01T18:07:26.826Z",
+    "updateTime": "2026-09-01T18:07:31.860Z"
+  },
+  {
+    "id": "1788286288766",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-1",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-01T18:11:28.766Z",
+    "updateTime": "2026-09-01T18:11:33.837Z"
+  },
+  {
+    "id": "1788286300348",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-2",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 130",
+    "createTime": "2026-09-01T18:11:40.348Z",
+    "updateTime": "2026-09-01T18:11:45.395Z"
+  },
+  {
+    "id": "1788286312067",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone-3",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 148",
+    "createTime": "2026-09-01T18:11:52.067Z",
+    "updateTime": "2026-09-01T18:11:57.338Z"
+  },
+  {
+    "id": "1788286587050",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "109",
+      "name": "clone1",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 105",
+    "createTime": "2026-09-01T18:16:27.050Z",
+    "updateTime": "2026-09-01T18:16:32.401Z"
+  },
+  {
+    "id": "1788286653395",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "144",
+      "name": "clone-win7-test",
+      "storage": "data",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 105",
+    "createTime": "2026-09-01T18:17:33.395Z",
+    "updateTime": "2026-09-01T18:18:54.271Z"
+  },
+  {
+    "id": "1788286917307",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "142",
+      "name": "clone-win10-test",
+      "storage": "data",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-01T18:21:57.307Z",
+    "updateTime": "2026-09-01T18:23:08.068Z"
+  },
+  {
+    "id": "1788287732624",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "142",
+      "name": "clone-1",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 105",
+    "createTime": "2026-09-01T18:35:32.624Z",
+    "updateTime": "2026-09-01T18:36:08.032Z"
+  },
+  {
+    "id": "1788336617471",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10虚拟机组",
+      "template_vmid": "142",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 4/4 台",
+    "createTime": "2026-09-02T08:10:17.471Z",
+    "updateTime": "2026-09-02T08:11:33.275Z"
+  },
+  {
+    "id": "1788341547634",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "124",
+      "name": "clone-win10-test",
+      "storage": "data",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-02T09:32:27.634Z",
+    "updateTime": "2026-09-02T09:32:50.159Z"
+  },
+  {
+    "id": "1788342764643",
+    "type": "cloneVM",
+    "status": "success",
+    "payload": {
+      "vmid": "124",
+      "name": "clone-win10-test-new",
+      "storage": "kk",
+      "username": "administrator",
+      "password": "123456",
+      "rdpPort": 3389
+    },
+    "message": "克隆成功！新 VMID = 128",
+    "createTime": "2026-09-02T09:52:44.643Z",
+    "updateTime": "2026-09-02T09:53:24.949Z"
+  },
+  {
+    "id": "1788349842370",
+    "type": "batchCloneVM",
+    "status": "success",
+    "payload": {
+      "vm_group": "win10-clone组",
+      "template_vmid": "128",
+      "count": 4,
+      "storage": ""
+    },
+    "message": "批量克隆完成！成功 4/4 台",
+    "createTime": "2026-09-02T11:50:42.370Z",
+    "updateTime": "2026-09-02T11:51:42.476Z"
   }
 ]

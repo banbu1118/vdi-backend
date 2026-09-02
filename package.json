@@ -1,6 +1,6 @@
 {
   "name": "vdi-back",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "opendesk-project backend",
   "main": "index.js",
   "type": "module",
@@ -24,6 +24,7 @@
     "oidc-provider": "^9.5.2",
     "qs": "^6.14.0",
     "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "ssh2": "^1.17.0"
   }
 }

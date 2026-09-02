@@ -180,6 +180,67 @@ export const batchCreateUsers = async (req, res) => {
 
 
 /**
+ * 创建单个用户
+ */
+export const createSingleUser = async (req, res) => {
+  const {
+    username,
+    password,
+    remark,
+    public_gateway,
+    direct,
+    audio_redirect,
+    usb_redirect,
+    drive_redirect,
+    printer_redirect,
+    clipboard_redirect,
+    client_to_server_clipboard,
+    server_to_client_clipboard
+  } = req.body;
+
+  // 验证必填字段
+  if (!username || !password) {
+    return res.status(400).json({ code: 400, message: '用户名和密码为必填字段' });
+  }
+
+  try {
+    // 检查用户是否存在
+    const existing = await User.findOne({ where: { username } });
+    if (existing) {
+      return res.status(400).json({ code: 400, message: `用户名 ${username} 已存在` });
+    }
+
+    // 密码加密
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 创建用户
+    const user = await User.create({
+      username,
+      password: hashedPassword,
+      remark,
+      public_gateway: public_gateway || '0',
+      direct: direct || '0',
+      audio_redirect: audio_redirect || '1',
+      usb_redirect: usb_redirect || '1',
+      drive_redirect: drive_redirect || '1',
+      printer_redirect: printer_redirect || '1',
+      clipboard_redirect: clipboard_redirect || '1',
+      client_to_server_clipboard: client_to_server_clipboard || '1',
+      server_to_client_clipboard: server_to_client_clipboard || '1'
+    });
+
+    // 返回结果
+    res.json({
+      code: 0,
+      message: `用户 ${user.username} 创建完成`
+    });
+  } catch (err) {
+    console.error('[USER] 创建单个用户失败:', err);
+    res.status(500).json({ code: 500, message: '创建单个用户失败', error: err.message });
+  }
+};
+
+/**
  * 删除用户（admin 才能操作）
  */
 export const deleteUser = async (req, res) => {
@@ -345,9 +406,9 @@ export const disableUser = async (req, res) => {
  * 解除用户锁定
  */
 export const unlockUser = async(req,res) =>{
-  //更新User表中status字段为字符串offline，并清空lock_until字段
+  //更新User表中status字段为字符串offline，并清空lock_until字段和login_fail_count字段
   const { username } = req.body;
-  await User.update({ status: 'offline', lock_until: null }, { where: { username } });
+  await User.update({ status: 'offline', login_fail_count: 0,lock_until: null }, { where: { username } });
   res.json({ code: 0, message: '用户解锁成功' });
 }
 

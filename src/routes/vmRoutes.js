@@ -2,6 +2,7 @@ import express from 'express';
 import {
     syncVMs,
     getVMList,
+    getAdminVMList,
     startVM,
     shutdownVM,
     stopVM,
@@ -18,7 +19,9 @@ import {
     renameVM,
     updateVMUsername,
     updateRDPPort,
-    hasMilestone
+    hasMilestone,
+    importTemplate,
+    exportTemplate
 } from '../controllers/vmController.js';
 import { getVMIP } from '../utils/getVMIP.js'
 import { auth, authorize } from '../middleware/auth.js';
@@ -34,6 +37,9 @@ router.get('/', authorize(['admin']), getVMList);
 
 // ✅ 仅管理员能同步
 router.post('/sync', authorize(['admin']), syncVMs);
+
+// 获取用户为 admin 的虚拟机列表
+router.get('/admin/vms', authorize(['admin']), getAdminVMList);
 
 // 普通用户允许访问部分接口
 router.post('/:vmid/start', authorize(['admin', 'user']), startVM);
@@ -64,13 +70,19 @@ router.get('/:vmid/ip', authorize(['admin']), getVMIP);
 router.get('/:vmid/rdp', authorize(['admin', 'user']), getVMRDP);
 
 // 返回 freerdp 启动命令
-router.get('/:vmid/login', authorize(['user']), getVMLoginCommand);
+router.get('/:vmid/login', authorize(['admin', 'user']), getVMLoginCommand);
 
 //更新虚拟机密码
 router.post('/:vmid/password', authorize(['admin']), updateVMPassword);
 
 //克隆模板虚拟机
 router.post('/template/:vmid/clone', authorize(['admin']), cloneTemplateVM);
+
+//导入模板（raw body 流式上传备份文件并恢复为模板）
+router.post('/template/import', authorize(['admin']), importTemplate);
+
+//导出模板（PVE 备份后 ssh2 流式下载，响应体即文件）
+router.post('/template/:vmid/export', authorize(['admin']), exportTemplate);
 
 //虚拟机转换为模板
 router.post('/:vmid/template', authorize(['admin']), convertToTemplate);

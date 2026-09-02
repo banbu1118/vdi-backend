@@ -29,13 +29,15 @@ export async function initAdmin() {
         client_type: null,
 
         // 策略（管理员默认拥有全部权限）
-        direct: true,
-        public_gateway: true,
-        usb_redirect: true,
-        drive_redirect: true,
-        audio_redirect: true,
-        printer_redirect: true,
-        clipboard_redirect: true,
+        direct: '0',
+        public_gateway: '1',
+        usb_redirect: '1',
+        drive_redirect: '1',
+        audio_redirect: '1',
+        printer_redirect: '1',
+        clipboard_redirect: '1',
+        server_to_client_clipboard: '1', // 服务器到客户端剪贴板，1：启用
+        client_to_server_clipboard: '1', // 客户端到服务器剪贴板，1：启用
 
         // MFA（可根据需要开启）
         mfa_enabled: false
